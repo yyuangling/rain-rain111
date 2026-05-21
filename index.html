@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高考一轮复习系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f5f0;--paper:#fff;--ink:#1c1917;--muted:#78716c;--border:#e7e5e0;--subtle:#f5f3ee;
+  --cn:#b45309;--cn-bg:#fef3c7;
+  --en:#0f766e;--en-bg:#ccfbf1;
+  --ma:#1d4ed8;--ma-bg:#dbeafe;
+  --po:#7c3aed;--po-bg:#ede9fe;
+  --hi:#be185d;--hi-bg:#fce7f3;
+  --ge:#0e7490;--ge-bg:#cffafe;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.7;}
+.layout{display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:210px;flex-shrink:0;background:var(--paper);border-right:1px solid var(--border);
+  position:fixed;top:0;left:0;height:100vh;display:flex;flex-direction:column;z-index:200;}
+.logo{padding:20px 18px 14px;border-bottom:1px solid var(--border);}
+.logo-title{font-family:'Noto Serif SC',serif;font-size:16px;font-weight:900;letter-spacing:1px;}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.sb-top{padding:14px 12px 10px;border-bottom:1px solid var(--border);}
+.today-btn{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;border-radius:8px;
+  border:none;background:var(--ink);color:#fff;font-family:'Noto Sans SC',sans-serif;
+  font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s;}
+.today-btn:hover{opacity:.85;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;flex-shrink:0;
+  box-shadow:0 0 5px #4ade80;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.4;}}
+.hist-label{font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;
+  padding:12px 12px 6px;font-family:'JetBrains Mono',monospace;}
+.hist-scroll{flex:1;overflow-y:auto;padding:0 12px 12px;}
+.hist-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;
+  cursor:pointer;transition:all .15s;margin-bottom:2px;border:1px solid transparent;}
+.hist-item:hover{background:var(--subtle);}
+.hist-item.cur{background:var(--subtle);border-color:var(--border);}
+.hist-date{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;}
+.hist-day{font-size:11px;color:var(--muted);}
+.hist-prog{margin-left:auto;font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.hdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.hdot-today{background:#60a5fa;box-shadow:0 0 5px #60a5fa;}
+.hdot-full{background:#4ade80;}
+.hdot-part{background:#fbbf24;}
+.hdot-none{background:var(--border);}
+.sb-bottom{padding:12px;border-top:1px solid var(--border);}
+.streak-box{text-align:center;background:var(--subtle);border-radius:8px;padding:10px;}
+.streak-n{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:600;line-height:1;}
+.streak-l{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* MAIN */
+.main{margin-left:210px;flex:1;display:flex;flex-direction:column;}
+.topbar{background:var(--paper);border-bottom:1px solid var(--border);padding:14px 32px;
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.tb-left{}
+.tb-title-row{display:flex;align-items:center;gap:10px;}
+.tb-title{font-family:'Noto Serif SC',serif;font-size:16px;font-weight:700;}
+.tb-tag{font-size:10px;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;}
+.tag-today{background:#dcfce7;color:#166534;}
+.tag-hist{background:#fef3c7;color:#92400e;}
+.tb-date{font-size:12px;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.tb-right{display:flex;align-items:center;gap:12px;}
+.countdown{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);
+  padding:5px 11px;background:var(--subtle);border-radius:6px;border:1px solid var(--border);}
+.ctime{font-family:'JetBrains Mono',monospace;color:var(--ink);font-weight:500;}
+.prog-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
+.prog-track{width:110px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cn),var(--en));transition:width .4s;}
+
+/* CONTENT */
+.content{flex:1;padding:24px 32px 60px;max-width:980px;}
+
+/* DAY HEADER */
+.day-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;
+  padding:16px 22px;background:var(--paper);border:1px solid var(--border);border-radius:12px;}
+.dh-title{font-family:'Noto Serif SC',serif;font-size:20px;font-weight:900;}
+.dh-sub{font-size:12px;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.dh-stat{text-align:right;}
+.dh-num{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;}
+.dh-nlabel{font-size:11px;color:var(--muted);}
+.dh-track{width:90px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px;margin-left:auto;}
+.dh-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cn),var(--en));transition:width .4s;}
+.hist-notice{background:#fef3c7;border:1px solid #fde68a;border-radius:9px;padding:9px 15px;
+  font-size:13px;color:#92400e;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.sec-label{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace;margin-bottom:12px;}
+
+/* TASK CARD */
+.tc{background:var(--paper);border:1.5px solid var(--border);border-radius:12px;margin-bottom:10px;
+  overflow:hidden;transition:box-shadow .2s;}
+.tc:hover{box-shadow:0 2px 12px rgba(0,0,0,.07);}
+.tc[data-s=cn]{border-left:4px solid var(--cn);}
+.tc[data-s=en]{border-left:4px solid var(--en);}
+.tc[data-s=ma]{border-left:4px solid var(--ma);}
+.tc[data-s=po]{border-left:4px solid var(--po);}
+.tc[data-s=hi]{border-left:4px solid var(--hi);}
+.tc[data-s=ge]{border-left:4px solid var(--ge);}
+.tc.done{opacity:.42;}
+.tc.done .tc-title{text-decoration:line-through;}
+.tc-head{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none;}
+.tc-chk{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--paper);
+  transition:all .15s;cursor:pointer;position:relative;z-index:2;}
+.tc.done .tc-chk{background:var(--muted);border-color:var(--muted);}
+.tc-body-h{flex:1;}
+.tc-title{font-size:13.5px;font-weight:500;}
+.tc-hint{font-size:12px;color:var(--muted);margin-top:2px;}
+.tc-meta{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.spill{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;}
+.sp-cn{background:var(--cn-bg);color:var(--cn);}
+.sp-en{background:var(--en-bg);color:var(--en);}
+.sp-ma{background:var(--ma-bg);color:var(--ma);}
+.sp-po{background:var(--po-bg);color:var(--po);}
+.sp-hi{background:var(--hi-bg);color:var(--hi);}
+.sp-ge{background:var(--ge-bg);color:var(--ge);}
+.arr{font-size:11px;color:var(--muted);transition:transform .25s;flex-shrink:0;}
+.tc.open .arr{transform:rotate(90deg);}
+.tc-content{max-height:0;overflow:hidden;transition:max-height .35s ease;}
+.tc.open .tc-content{max-height:3000px;}
+.tc-inner{padding:0 18px 18px;border-top:1px dashed var(--border);padding-top:16px;}
+
+/* INSIDE CONTENT */
+.poem{font-family:'Noto Serif SC',serif;font-size:15px;line-height:2.6;font-weight:500;}
+.pline{display:block;}
+.pnote{font-size:12px;color:var(--muted);margin-top:10px;padding-top:10px;
+  border-top:1px dashed var(--border);line-height:1.8;}
+.block{background:var(--subtle);border-radius:9px;padding:13px 16px;margin-bottom:11px;
+  font-size:13.5px;line-height:2;}
+.block-t{font-weight:600;font-size:13px;margin-bottom:9px;}
+.qi{border-left:3px solid var(--cn);padding:10px 14px;border-radius:0 7px 7px 0;
+  margin-bottom:9px;background:var(--cn-bg);}
+.qzh{font-family:'Noto Serif SC',serif;font-size:14.5px;font-weight:600;}
+.qsrc{font-size:11.5px;color:var(--muted);margin-top:2px;}
+.quse{font-size:12px;margin-top:5px;padding:3px 8px;background:rgba(0,0,0,.04);border-radius:4px;}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(162px,1fr));gap:8px;margin-bottom:10px;}
+.vc{border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--paper);}
+.vw{font-size:15px;font-weight:700;color:var(--en);}
+.vp{font-size:11px;color:var(--muted);font-family:monospace;margin:2px 0;}
+.vz{font-size:12.5px;}
+.ve{font-size:11.5px;color:var(--muted);font-style:italic;margin-top:4px;line-height:1.5;}
+.sent{border:1px solid var(--border);border-radius:8px;padding:11px 14px;margin-bottom:8px;background:var(--paper);}
+.sen{font-size:13.5px;font-weight:500;line-height:1.8;margin-bottom:4px;}
+.szh{font-size:12px;color:var(--muted);}
+.stag{font-size:10px;padding:2px 7px;border-radius:3px;display:inline-block;margin-top:5px;background:#d1fae5;color:#065f46;}
+.formula{font-family:'JetBrains Mono',monospace;background:var(--subtle);border-radius:8px;
+  padding:13px 16px;font-size:12.5px;line-height:2.2;border-left:4px solid var(--ma);
+  margin-bottom:10px;white-space:pre-wrap;}
+.tbl{background:var(--subtle);border-radius:8px;padding:13px 16px;margin-bottom:9px;
+  border-left:3px solid;font-size:13.5px;line-height:2.1;}
+.tbt{font-weight:600;font-size:12.5px;margin-bottom:8px;}
+.tl-wrap{padding-left:14px;position:relative;margin-bottom:10px;}
+.tl-wrap::before{content:'';position:absolute;left:4px;top:0;bottom:0;width:1px;background:var(--border);}
+.tli{position:relative;padding:3px 0 11px 16px;}
+.tli::before{content:'';position:absolute;left:-10px;top:7px;width:7px;height:7px;
+  border-radius:50%;background:var(--hi);}
+.tly{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--hi);}
+.tle{font-size:12.5px;margin-top:1px;line-height:1.6;}
+.acc{border:1px solid var(--border);border-radius:8px;margin-bottom:7px;background:var(--paper);}
+.acc-h{padding:10px 14px;cursor:pointer;display:flex;align-items:center;
+  justify-content:space-between;font-size:13px;font-weight:500;}
+.acc-h:hover{background:var(--subtle);border-radius:8px;}
+.acc-arr{color:var(--muted);font-size:11px;transition:transform .2s;}
+.acc.open .acc-arr{transform:rotate(90deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease;
+  font-size:13px;line-height:2;color:var(--muted);padding:0 14px;}
+.acc.open .acc-body{max-height:500px;padding:0 14px 12px;color:var(--ink);}
+.tip{font-size:12px;color:var(--muted);background:rgba(0,0,0,.03);border-radius:6px;
+  padding:8px 11px;margin-top:6px;line-height:1.7;}
+.ask-row{display:flex;gap:8px;margin-top:10px;}
+.ask-inp{flex:1;background:var(--paper);border:1px solid var(--border);border-radius:7px;
+  padding:8px 12px;color:var(--ink);font-family:'Noto Sans SC',sans-serif;font-size:13px;outline:none;}
+.ask-inp:focus{border-color:#aaa;}
+.ask-btn{padding:8px 16px;border-radius:7px;border:none;font-family:'Noto Sans SC',sans-serif;
+  font-size:13px;font-weight:500;cursor:pointer;color:#fff;white-space:nowrap;transition:opacity .15s;}
+.ask-btn:hover{opacity:.82;}
+.ask-ans{margin-top:10px;background:var(--subtle);border:1px solid var(--border);border-radius:8px;
+  padding:13px 15px;font-size:13.5px;line-height:2;display:none;white-space:pre-wrap;}
+.ask-ans.on{display:block;}
+
+/* WEEKLY */
+.wgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+.wcard{background:var(--paper);border:1.5px solid var(--border);border-radius:10px;
+  padding:14px;transition:all .15s;}
+.wcard:hover{box-shadow:0 2px 8px rgba(0,0,0,.07);}
+.wi{font-size:20px;margin-bottom:5px;}
+.wn{font-size:13px;font-weight:600;margin-bottom:2px;}
+.wd{font-size:11.5px;color:var(--muted);}
+.wb{margin-top:8px;font-size:10px;padding:2px 7px;border-radius:3px;display:inline-block;
+  font-family:'JetBrains Mono',monospace;background:#fef3c7;color:#92400e;}
+
+/* SYNC */
+.sync-card{background:var(--paper);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-top:8px;}
+.sync-card h3{font-size:15px;font-weight:600;margin-bottom:4px;}
+.sync-card p{font-size:13px;color:var(--muted);margin-bottom:12px;}
+.sync-ta{width:100%;background:var(--subtle);border:1px solid var(--border);border-radius:8px;
+  padding:11px 13px;color:var(--ink);font-family:'Noto Sans SC',sans-serif;
+  font-size:13px;line-height:1.8;resize:vertical;min-height:78px;outline:none;}
+.sync-ta:focus{border-color:#aaa;}
+.sync-btn{margin-top:10px;padding:9px 22px;background:var(--ink);color:var(--paper);border:none;
+  border-radius:7px;font-family:'Noto Sans SC',sans-serif;font-size:13px;font-weight:500;
+  cursor:pointer;transition:opacity .15s;}
+.sync-btn:hover{opacity:.82;}
+.sync-btn:disabled{opacity:.4;cursor:not-allowed;}
+.sync-res{margin-top:12px;background:var(--subtle);border:1px solid var(--border);border-radius:9px;
+  padding:14px 16px;font-size:13.5px;line-height:2;display:none;white-space:pre-wrap;}
+.sync-res.on{display:block;}
+.sync-lbl{font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace;margin-bottom:8px;}
+
+.dots{display:inline-flex;gap:4px;align-items:center;}
+.dots span{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:bounce 1.2s infinite;}
+.dots span:nth-child(2){animation-delay:.2s;}
+.dots span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.4;}40%{transform:translateY(-4px);opacity:1;}}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-title">高考复习</div>
+    <div class="logo-sub">一轮 · 六科系统</div>
+  </div>
+  <div class="sb-top">
+    <button class="today-btn" onclick="goToday()">
+      <span class="live-dot"></span>今天的任务
+    </button>
+  </div>
+  <div class="hist-label">历史记录</div>
+  <div class="hist-scroll" id="histList"></div>
+  <div class="sb-bottom">
+    <div class="streak-box">
+      <div class="streak-n" id="streakN">1</div>
+      <div class="streak-l">连续学习天数 🔥</div>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-title-row">
+        <span class="tb-title" id="tbTitle">今日任务</span>
+        <span class="tb-tag tag-today" id="tbTag">今天</span>
+      </div>
+      <div class="tb-date" id="tbDate"></div>
+    </div>
+    <div class="tb-right">
+      <div class="countdown">下次更新 <span class="ctime" id="ctime">--:--:--</span></div>
+      <div class="prog-row">
+        <span id="progTxt">0/10</span>
+        <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+        完成
+      </div>
+    </div>
+  </div>
+  <div class="content" id="mainContent"></div>
+</div>
+</div>
+
+<script>
+const UPDATE_HOUR = 6;
+const DAYS_CN = ['周日','周一','周二','周三','周四','周五','周六'];
+const SUBJ_NAME = {cn:'语文',en:'英语',ma:'数学',po:'政治',hi:'历史',ge:'地理'};
+
+// ---- DATA BANK ----
+const POEMS = [
+  ['《静女》· 诗经·邶风','静女其姝，俟我于城隅。\n爱而不见，搔首踟蹰。\n静女其娈，贻我彤管。\n彤管有炜，说怿女美。\n自牧归荑，洵美且异。\n匪女之为美，美人之贻。','比兴手法；"匪女之为美，美人之贻"借物抒情；描写等待情态，语言质朴'],
+  ['《涉江采芙蓉》· 古诗十九首','涉江采芙蓉，兰泽多芳草。\n采之欲遗谁？所思在远道。\n还顾望旧乡，长路漫浩浩。\n同心而离居，忧伤以终老。','以乐景衬哀情；"还顾"转折有力；游子思乡与夫妻离别之情'],
+  ['《短歌行》· 曹操（节选）','对酒当歌，人生几何！譬如朝露，去日苦多。\n何以解忧？唯有杜康。\n青青子衿，悠悠我心。但为君故，沉吟至今。\n月明星稀，乌鹊南飞。绕树三匝，何枝可依？\n山不厌高，海不厌深。周公吐哺，天下归心。','引《诗经》求贤；"周公吐哺"用典；默写热点："何以解忧""周公吐哺"'],
+  ['《归园田居·其一》· 陶渊明','少无适俗韵，性本爱丘山。\n误落尘网中，一去三十年。\n羁鸟恋旧林，池鱼思故渊。\n开荒南野际，守拙归园田。\n方宅十余亩，草屋八九间。\n榆柳荫后檐，桃李罗堂前。','对仗；"羁鸟恋旧林"比喻；归隐田园的愉悦与对官场的厌弃'],
+  ['《登高》· 杜甫','风急天高猿啸哀，渚清沙白鸟飞回。\n无边落木萧萧下，不尽长江滚滚来。\n万里悲秋常作客，百年多病独登台。\n艰难苦恨繁霜鬓，潦倒新停浊酒杯。','情景交融；叠词"萧萧""滚滚"；沉郁悲凉，高考必考篇目'],
+  ['《念奴娇·赤壁怀古》· 苏轼','大江东去，浪淘尽，千古风流人物。\n故垒西边，人道是，三国周郎赤壁。\n乱石穿空，惊涛拍岸，卷起千堆雪。\n江山如画，一时多少豪杰。\n遥想公瑾当年，小乔初嫁了，雄姿英发。\n羽扇纶巾，谈笑间，樯橹灰飞烟灭。','豪放派代表；以古衬今；借周瑜抒发壮志未酬之感'],
+];
+
+const QUOTE_SETS = [
+  [
+    {z:'先天下之忧而忧，后天下之乐而乐。',s:'范仲淹《岳阳楼记》',u:'家国担当·责任感·以民为本'},
+    {z:'长风破浪会有时，直挂云帆济沧海。',s:'李白《行路难》',u:'逆境奋进·理想·结尾升华'},
+    {z:'路漫漫其修远兮，吾将上下而求索。',s:'屈原《离骚》',u:'探索精神·坚韧·追求真理'},
+    {z:'不积跬步，无以至千里；不积小流，无以成江海。',s:'荀子《劝学》',u:'积累·勤奋·量变质变'},
+    {z:'苟利国家生死以，岂因祸福避趋之。',s:'林则徐',u:'家国牺牲精神·近现代史开头'},
+    {z:'天行健，君子以自强不息。',s:'《周易》',u:'君子品格·拼搏进取'},
+  ],
+  [
+    {z:'人生自古谁无死？留取丹心照汗青。',s:'文天祥《过零丁洋》',u:'气节·民族精神·结尾升华'},
+    {z:'落红不是无情物，化作春泥更护花。',s:'龚自珍《己亥杂诗》',u:'奉献·牺牲·传承精神'},
+    {z:'居安思危，思则有备，有备无患。',s:'《左传》',u:'忧患意识·未雨绸缪'},
+    {z:'锲而不舍，金石可镂。',s:'荀子《劝学》',u:'坚持·持之以恒·学习态度'},
+    {z:'捐躯赴国难，视死忽如归。',s:'曹植《白马篇》',u:'英雄主义·家国牺牲·气势型开头'},
+    {z:'见贤思齐焉，见不贤而内自省也。',s:'《论语》',u:'修身养德·自我提升'},
+  ],
+];
+
+const MA_TOPICS = [
+  {name:'三角函数',hint:'辅助角/降幂/和差化积',
+   formulas:'【辅助角公式】\na·sinx + b·cosx = √(a²+b²)·sin(x+φ)，tanφ = b/a\n\n【降幂公式】\nsin²x = (1−cos2x)/2     cos²x = (1+cos2x)/2\nsinx·cosx = sin2x / 2\n\n【二倍角】\nsin2x = 2sinx·cosx\ncos2x = 1−2sin²x = 2cos²x−1',
+   steps:'①化同名（统一sinx或cosx）②化同角（x或2x）③辅助角合并④写值域最值取等条件',
+   warn:'φ的象限必须看a,b正负；最值不写取等条件必然失分',
+   ex1:'化简 f(x)=2sin²x+2√3·sinx·cosx，求最小正周期和最大值',
+   ex2:'已知f(x)=2sin(2x+π/6)，求f(x)在[0,π/2]上的最值'},
+  {name:'函数与图象',hint:'定义域/值域/奇偶性/单调性',
+   formulas:'【四大性质】\n定义域：分母≠0；偶次根式≥0；对数真数>0\n值域：单调函数→端点法；换元/配方\n奇偶性：f(-x)=f(x)→偶函数；f(-x)=-f(x)→奇函数\n单调性：导数法 f\'(x)>0→递增；f\'(x)<0→递减',
+   steps:'①确定定义域 ②判断奇偶/单调 ③图象变换（左加右减上加下减）',
+   warn:'"左加右减"是对x的加减；判断奇偶先确认定义域是否关于原点对称',
+   ex1:'已知f(x)=lg(x²-x-2)，求定义域',
+   ex2:'判断f(x)=x³-3x的奇偶性，并求单调递增区间'},
+  {name:'数列',hint:'等差/等比/错位相减/裂项',
+   formulas:'【等差数列】\naₙ = a₁+(n-1)d\nSₙ = na₁+n(n-1)d/2 = n(a₁+aₙ)/2\n\n【等比数列】\naₙ = a₁·qⁿ⁻¹\nSₙ = a₁(1-qⁿ)/(1-q)（q≠1）\n\n【求和技巧】\n等差×等比 → 错位相减法\n分母为乘积型 → 裂项求和',
+   steps:'①判断类型（等差/等比/其他）②套公式③错位相减要列出S和qS两行',
+   warn:'错位相减最后检查首尾项，不要漏减；等比q=1要单独讨论',
+   ex1:'等差数列{aₙ}中，a₃=7，a₆=16，求a₁和公差d',
+   ex2:'求数列{n·2ⁿ}前n项和Sₙ'},
+];
+
+const GE_TOPICS = [
+  {name:'农业区位',
+   content:'【自然因素】口诀：气地水土\n🌡️气候：热量/降水/光照/昼夜温差\n🏔️地形：地势平坦利机械；山地适林牧\n💧水源：灌溉充足（河/湖/地下水/冰雪融水）\n🌱土壤：肥沃深厚（东北黑土/四川紫色土）\n\n【社会经济因素】口诀：市交劳技政\n🛒市场：广阔（人口多/城市化高/近市场）\n🚂交通：铁路/公路/港口便利\n👷劳动力：丰富廉价\n🔬技术：机械化/良种/化肥\n📋政策：补贴/保护价',
+   warn:'答题按分值选要点，不要全部罗列！'},
+  {name:'工业区位',
+   content:'【核心因素】\n⚡能源/原料：靠近原料地（采矿/冶炼）；靠近能源地（高耗能）\n🚢交通：沿海/沿江/沿铁路干线\n👔劳动力：技术密集→高素质；劳动密集→廉价\n🏙️市场：靠近消费市场（家电/食品）\n🌿环境：污染型→远居民区/水源，下风向/下游\n\n【四种导向类型】\n原料导向：采矿/制糖（减重）\n市场导向：啤酒/家具（不便运输）\n劳动力导向：纺织/电子（廉价劳动力）\n技术导向：航天/半导体（高素质人才）',
+   warn:'注意区分导向类型；污染型工业方位要说清楚风向和水流方向'},
+  {name:'水资源与荒漠化',
+   content:'【水资源问题】\n原因：①自然（降水少/蒸发强）②人为（人口多/污染/浪费）\n措施：①开源（水库/调水/淡化/雨水收集）②节流（节水技术/调整产业/提水价）\n\n【土地荒漠化】\n自然原因：气候干旱/风力强/植被稀少\n人为原因：过度放牧/开垦/不合理灌溉（盐碱化）/乱砍滥伐\n治理：退耕还林还草/草方格/植树造林/政策法规',
+   warn:'荒漠化原因必须分自然和人为两类；治理措施要有层次'},
+];
+
+const HI_ESSAYS = [
+  {title:'近代中国救亡探索的演变逻辑',
+   point:'近代中国历次救亡运动体现了从"器物"到"制度"再到"思想"层层深入的探索逻辑。',
+   args:['①19世纪60-90年代，洋务派以"中体西用"为指导开展洋务运动，引进西方技术，但甲午战败证明器物层面的学习无法救国，制度问题亟待解决。',
+         '②19世纪末，维新派发动戊戌变法，试图改良政治制度，然仅103天即告失败，说明在封建体制下改良道路走不通。',
+         '③1911年辛亥革命推翻清朝建立中华民国，实现帝制到共和的跨越，但共和政体名存实亡，革命有待深化。'],
+   conc:'综上，近代救亡探索遵循由浅入深的内在逻辑，每次失败推动探索走向更深层次，说明只有将马克思主义与中国实际相结合，才能真正引领中国走向独立富强。'},
+  {title:'中国古代专制主义中央集权制度的演变',
+   point:'中国古代专制主义中央集权制度呈现皇权不断加强、相权不断削弱、中央集权不断强化的总体趋势。',
+   args:['①秦朝建立皇帝制度、三公九卿制和郡县制，开创了专制主义中央集权制度的基本框架，奠定了两千年封建政治制度的基础。',
+         '②隋唐实行三省六部制，中书省起草、门下省审议、尚书省执行，相权被一分为三，皇权得到加强，同时提高了行政效率。',
+         '③明朝废除丞相，权分六部；清朝雍正帝设立军机处，军机大臣跪受笔录，君主专制达到顶峰。'],
+   conc:'综上，古代政治制度演变始终围绕"强化皇权、削弱相权、巩固统一"展开，为维护统一多民族国家发挥了重要作用，但也积累了深重的专制弊端。'},
+];
+
+const PO_MODULES = [
+  {title:'必修一 · 商品/价格/消费',
+   items:[
+     {q:'商品的基本属性',a:'①使用价值（自然属性）：满足需要的有用性\n②价值（社会属性）：凝结的无差别人类劳动\n生产者让渡使用价值→实现价值；消费者支付价值→得使用价值'},
+     {q:'价值规律内容与表现（重点！）',a:'内容：价值量由社会必要劳动时间决定；等价交换\n表现：价格受供求影响围绕价值上下波动\n⚠️ 是"围绕价值波动"，不是"由供求决定"！'},
+     {q:'影响消费的因素（口诀：收价观保）',a:'①收入（根本因素）②价格（反比）③消费观念/心理④社会保障体系完善→消费信心↑'},
+     {q:'企业经营成功的因素',a:'①正确战略②技术创新/科学管理③诚信经营/树立信誉④走出去参与国际竞争'},
+   ]},
+  {title:'必修一 · 财政/货币政策',
+   items:[
+     {q:'财政的作用',a:'①促进社会公平/改善民生②促进资源合理配置③促进国民经济平稳运行'},
+     {q:'扩张vs紧缩财政政策',a:'扩张：增加支出+减少税收→刺激经济，增加就业\n紧缩：减少支出+增加税收→抑制通货膨胀'},
+     {q:'货币政策（宽松vs紧缩）',a:'宽松：降准+降息→扩大货币供给→刺激经济\n紧缩：升准+升息→减少货币供给→抑制通胀\n工具：存款准备金率、利率、公开市场操作'},
+     {q:'国家宏观调控的必要性',a:'市场调节存在自发性、盲目性、滞后性等固有缺陷；需国家利用经济、法律、行政手段宏观调控'},
+   ]},
+];
+
+const EN_VOCAB_SETS = [
+  [{w:'distinguish',p:'/dɪˈstɪŋɡwɪʃ/',z:'v. 区分；辨别',e:'distinguish A from B'},
+   {w:'acknowledge',p:'/əkˈnɒlɪdʒ/',z:'v. 承认；致谢',e:'acknowledge doing sth'},
+   {w:'perceive',p:'/pəˈsiːv/',z:'v. 感知；认为',e:'perceive A as B'},
+   {w:'advocate',p:'/ˈædvəkeɪt/',z:'v. 倡导 n.拥护者',e:'advocate for equality'},
+   {w:'constitute',p:'/ˈkɒnstɪtjuːt/',z:'v. 构成；组成',e:'constitute a threat'},
+   {w:'elaborate',p:'/ɪˈlæbərɪt/',z:'adj.精细的 v.详述',e:'elaborate on a point'},
+   {w:'inevitable',p:'/ɪnˈevɪtəbl/',z:'adj. 不可避免的',e:'an inevitable result'},
+   {w:'consequently',p:'/ˈkɒnsɪkwəntli/',z:'adv. 因此；结果',e:'Consequently, prices rose.'}],
+  [{w:'tremendous',p:'/trɪˈmendəs/',z:'adj. 巨大的；惊人的',e:'a tremendous effort'},
+   {w:'persevere',p:'/ˌpɜːsɪˈvɪə/',z:'v. 坚持不懈',e:'persevere in doing sth'},
+   {w:'dedicate',p:'/ˈdedɪkeɪt/',z:'v. 致力于；献身于',e:'dedicate oneself to sth'},
+   {w:'enlighten',p:'/ɪnˈlaɪtn/',z:'v. 启发；启迪',e:'enlighten the public'},
+   {w:'anticipate',p:'/ænˈtɪsɪpeɪt/',z:'v. 预期；期望；预料',e:'anticipate the outcome'},
+   {w:'facilitate',p:'/fəˈsɪlɪteɪt/',z:'v. 促进；使便利',e:'facilitate communication'},
+   {w:'controversial',p:'/ˌkɒntrəˈvɜːʃl/',z:'adj. 有争议的',e:'a controversial issue'},
+   {w:'overwhelming',p:'/ˌəʊvəˈwelmɪŋ/',z:'adj. 压倒性的',e:'overwhelming support'}],
+  [{w:'simultaneously',p:'/ˌsɪmlˈteɪniəsli/',z:'adv. 同时地',e:'happen simultaneously'},
+   {w:'spontaneous',p:'/spɒnˈteɪniəs/',z:'adj. 自发的；自然的',e:'a spontaneous reaction'},
+   {w:'perseverance',p:'/ˌpɜːsɪˈvɪərəns/',z:'n. 毅力；坚持不懈',e:'with great perseverance'},
+   {w:'deteriorate',p:'/dɪˈtɪəriəreɪt/',z:'v. 恶化；变坏',e:'the situation deteriorated'},
+   {w:'indispensable',p:'/ˌɪndɪˈspensəbl/',z:'adj. 不可或缺的',e:'an indispensable tool'},
+   {w:'compassionate',p:'/kəmˈpæʃənət/',z:'adj. 富有同情心的',e:'a compassionate teacher'},
+   {w:'integrity',p:'/ɪnˈteɡrəti/',z:'n. 诚信；正直；完整性',e:'a person of integrity'},
+   {w:'aspiration',p:'/ˌæspəˈreɪʃn/',z:'n. 渴望；抱负；志向',e:'career aspirations'}],
+];
+
+// ---- DATE HELPERS ----
+function todayKey() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+}
+function keyToDate(k) {
+  const [y,m,d] = k.split('-');
+  return new Date(+y, +m-1, +d);
+}
+function keyLabel(k) {
+  const d = keyToDate(k);
+  return `${d.getMonth()+1}月${d.getDate()}日 · ${DAYS_CN[d.getDay()]}`;
+}
+function isToday(k) { return k === todayKey(); }
+
+// ---- STORAGE ----
+function loadStore() { return JSON.parse(localStorage.getItem('gk4') || '{}'); }
+function saveStore(s) { localStorage.setItem('gk4', JSON.stringify(s)); }
+function getDayData(k) {
+  const s = loadStore();
+  if (!s[k]) { s[k] = { tasks: buildTasks(k), done: [], sync: '' }; saveStore(s); }
+  return s[k];
+}
+function setDone(k, id, v) {
+  const s = loadStore();
+  if (!s[k]) return;
+  if (v && !s[k].done.includes(id)) s[k].done.push(id);
+  if (!v) s[k].done = s[k].done.filter(x => x !== id);
+  saveStore(s);
+}
+function setSync(k, txt) {
+  const s = loadStore(); if (!s[k]) return;
+  s[k].sync = txt; saveStore(s);
+}
+
+// ---- BUILD TASKS ----
+function dayIndex(k) {
+  const base = new Date('2024-01-01');
+  return Math.floor((keyToDate(k) - base) / 86400000);
+}
+function buildTasks(k) {
+  const i = dayIndex(k);
+  return [
+    {id:1,s:'cn',title:`语文 · 古诗背诵：${POEMS[i%POEMS.length][0]}`,hint:'读3遍→遮住→默写→对照检查',type:'poem',di:i},
+    {id:2,s:'cn',title:'语文 · 名句积累：今日6条',hint:`今日主题：${i%2===0?'家国情怀 + 奋斗进取':'气节精神 + 修身养德'}`,type:'quotes',di:i},
+    {id:3,s:'en',title:'英语 · 3500词精背：今日8词',hint:'每词造一个例句，区分近义词',type:'vocab',di:i},
+    {id:4,s:'en',title:'英语 · 优美句子 + 续写动作句各4条',hint:'背完要能默写出来再算背会',type:'sentences'},
+    {id:5,s:'ma',title:`数学 · ${MA_TOPICS[i%MA_TOPICS.length].name}：公式整理 + 2道例题`,hint:MA_TOPICS[i%MA_TOPICS.length].hint,type:'math',di:i},
+    {id:6,s:'po',title:`政治 · ${PO_MODULES[i%PO_MODULES.length].title}`,hint:'点击展开每个知识点背记，全部过完后合书默写',type:'polknow',di:i},
+    {id:7,s:'po',title:'政治 · 答题模板：经济类主观题',hint:'原理+材料+结论格式，每次做题前对照一遍',type:'poltpl'},
+    {id:8,s:'hi',title:`历史 · 小论文示范：${HI_ESSAYS[i%HI_ESSAYS.length].title}`,hint:'读懂结构，尝试自己复述论证过程',type:'essay',di:i},
+    {id:9,s:'hi',title:'历史 · 时间线回顾：中国近代史',hint:'每个节点说出历史意义，不只记年份',type:'timeline'},
+    {id:10,s:'ge',title:`地理 · 模板背记：${GE_TOPICS[i%GE_TOPICS.length].name}`,hint:'背完口诀后默写检验一遍',type:'geo',di:i},
+  ];
+}
+
+// ---- RENDER CONTENT ----
+function renderContent(task) {
+  const i = task.di !== undefined ? task.di : 0;
+  if (task.type === 'poem') {
+    const [title, lines, note] = POEMS[i % POEMS.length];
+    const lineHtml = lines.split('\n').map(l => `<span class="pline">${l}</span>`).join('');
+    return `<div class="block" style="border-left:3px solid var(--cn)">
+      <div class="block-t">📜 ${title}</div>
+      <div class="poem">${lineHtml}</div>
+      <div class="pnote">📌 考点：${note}</div>
+    </div>
+    <div class="tip">✅ 背诵方法：读3遍 → 遮住默写 → 对照检查 → 标记错的句子重点攻克</div>`;
+  }
+  if (task.type === 'quotes') {
+    const qs = QUOTE_SETS[i % QUOTE_SETS.length];
+    return qs.map(q => `<div class="qi">
+      <div class="qzh">${q.z}</div>
+      <div class="qsrc">——${q.s}</div>
+      <div class="quse">✏️ ${q.u}</div>
+    </div>`).join('') + `<div class="tip">✅ 每条名句要知道出处、记住适用场景，不只是死背原文</div>`;
+  }
+  if (task.type === 'vocab') {
+    const vs = EN_VOCAB_SETS[i % EN_VOCAB_SETS.length];
+    return `<div class="vgrid">${vs.map(v=>`<div class="vc">
+      <div class="vw">${v.w}</div><div class="vp">${v.p}</div>
+      <div class="vz">${v.z}</div><div class="ve">${v.e}</div>
+    </div>`).join('')}</div>
+    <div class="tip">✅ 先看中文猜英文 → 对照检查 → 不认识的单独抄一遍并造句</div>`;
+  }
+  if (task.type === 'sentences') {
+    return `<div style="font-weight:600;font-size:13px;margin-bottom:10px;">✨ 优美句子（可用于作文）</div>
+    <div class="sent"><div class="sen">No matter how dark the night, the dawn will always come — and with it, a chance to begin again.</div><div class="szh">无论黑夜多长，黎明终会来临，带来重新开始的机会。</div><span class="stag">励志·结尾升华</span></div>
+    <div class="sent"><div class="sen">Courage is not the absence of fear — it is moving forward despite it.</div><div class="szh">勇气不是没有恐惧，而是在恐惧中依然前行。</div><span class="stag">勇气·人物描写</span></div>
+    <div class="sent"><div class="sen">Time gives everyone the same twenty-four hours; what differs is the wisdom to spend it.</div><div class="szh">时间给每人相同的二十四小时，不同的只是使用它的智慧。</div><span class="stag">时间·议论文</span></div>
+    <div class="sent"><div class="sen">Some people come as blessings; others come as lessons. Either way, they shape who you are.</div><div class="szh">有些人是祝福而来，有些人是课题而来，但都塑造了你。</div><span class="stag">人际·成长</span></div>
+    <div style="font-weight:600;font-size:13px;margin:14px 0 8px;">🏃 续写动作句（按情绪分类）</div>
+    <div class="tbl" style="border-color:var(--ma);font-size:13px;line-height:2;">😰 紧张：Her hands trembled as she reached for the door handle. / He swallowed hard, his throat suddenly dry.<br>😢 悲伤：She pressed her lips together, fighting back the tears. / Her shoulders sagged as she let out a long breath.<br>😊 喜悦：A wide grin spread across her face. / He leapt to his feet, pumping his fist in the air.<br>😤 决心：She set her jaw, squared her shoulders, and stepped forward. / He didn't look back. Not once.</div>
+    <div class="tip">✅ 背续写句要想象画面感，这样更容易记住并在考场灵活运用</div>`;
+  }
+  if (task.type === 'math') {
+    const t = MA_TOPICS[i % MA_TOPICS.length];
+    return `<div class="formula">${t.formulas}</div>
+    <div class="tbl" style="border-color:var(--ma)"><div class="tbt">▶ 解题规范步骤</div>${t.steps}</div>
+    <div class="tip">⚠️ 高频失分：${t.warn}</div>
+    <div style="font-weight:600;font-size:13px;margin:14px 0 8px;">✏️ 今日练习（草稿纸完成后可在这里问AI）</div>
+    <div class="tbl" style="border-color:var(--ma)"><div class="tbt">例题1（基础）</div>${t.ex1}</div>
+    <div class="tbl" style="border-color:var(--ma)"><div class="tbt">例题2（提升）</div>${t.ex2}</div>
+    <div class="ask-row"><input class="ask-inp" id="ask-${task.id}" placeholder="不会的步骤，这里直接问AI…"/><button class="ask-btn" style="background:var(--ma)" onclick="taskAsk('ma','ask-${task.id}','ans-${task.id}')">问AI→</button></div>
+    <div class="ask-ans" id="ans-${task.id}"></div>`;
+  }
+  if (task.type === 'polknow') {
+    const m = PO_MODULES[i % PO_MODULES.length];
+    return `<div class="tip" style="margin-bottom:12px;">📖 点击展开每个知识点 → 背记 → 收起 → 合书默写</div>` +
+      m.items.map((item, idx) => `<div class="acc" id="acc${task.id}-${idx}">
+        <div class="acc-h" onclick="toggleAcc('acc${task.id}-${idx}')">
+          <span>${item.q}</span><span class="acc-arr">▶</span>
+        </div>
+        <div class="acc-body"><div style="white-space:pre-line;padding-top:4px">${item.a}</div></div>
+      </div>`).join('') +
+      `<div class="tip" style="margin-top:8px;">✅ 全部过完后，关上页面说出每个知识点的要点，说不出来的重点再看</div>`;
+  }
+  if (task.type === 'poltpl') {
+    return `<div class="tbl" style="border-color:var(--po)"><div class="tbt">▶ 企业经济措施</div>
+      ①提高劳动生产率→降低成本→价格竞争优势<br>
+      ②技术创新→品牌建设→产品质量差异化<br>
+      ③诚信经营→树立良好信誉和形象<br>
+      ④承担社会责任→经济效益与社会效益统一</div>
+    <div class="tbl" style="border-color:var(--po)"><div class="tbt">▶ 政府宏观调控措施</div>
+      ①财政政策：扩张（增支减税）/紧缩（减支增税）<br>
+      ②货币政策：降准降息（扩张）/升准升息（紧缩）<br>
+      ③产业政策：调整结构，扶持特定行业<br>
+      ④收入分配：最低工资/转移支付/完善社保</div>
+    <div class="tbl" style="border-color:var(--po)"><div class="tbt">▶ 意义/作用类答题格式</div>
+      每点：<strong>原理词 + 材料关键词 + 结论</strong><br>
+      连接词：有利于……促进……实现……</div>
+    <div class="tip">💡 口诀：原理+材料+结论，每点不超3行，层次清晰不堆砌</div>
+    <div class="ask-row"><input class="ask-inp" id="ask-${task.id}" placeholder="政治题不会组织答案？直接问…"/><button class="ask-btn" style="background:var(--po)" onclick="taskAsk('po','ask-${task.id}','ans-${task.id}')">问AI→</button></div>
+    <div class="ask-ans" id="ans-${task.id}"></div>`;
+  }
+  if (task.type === 'essay') {
+    const e = HI_ESSAYS[i % HI_ESSAYS.length];
+    return `<div class="tbl" style="border-color:var(--hi);background:var(--hi-bg)"><div class="tbt">【论点】</div>${e.point}</div>
+    <div class="tbl" style="border-color:var(--hi)"><div class="tbt">【论证×3（每条含分析句）】</div>${e.args.join('<br><br>')}</div>
+    <div class="tbl" style="border-color:var(--hi);background:var(--hi-bg)"><div class="tbt">【结论】</div>${e.conc}</div>
+    <div class="tip">💡 结构：论点(2句)→史实×3(含分析句)→结论。史实必须写：时间+主体+事件+影响</div>
+    <div class="ask-row"><input class="ask-inp" id="ask-${task.id}" placeholder="让AI给你出新题，或批改你写的小论文…"/><button class="ask-btn" style="background:var(--hi)" onclick="taskAsk('hi','ask-${task.id}','ans-${task.id}')">问AI→</button></div>
+    <div class="ask-ans" id="ans-${task.id}"></div>`;
+  }
+  if (task.type === 'timeline') {
+    const tls = [
+      ['1840','鸦片战争→《南京条约》→割香港岛，开五口，中国近代史开端'],
+      ['1861','洋务运动（自强→求富）→器物层面探索，"中体西用"思想'],
+      ['1894','甲午战争→《马关条约》→洋务运动失败，民族危机空前加深'],
+      ['1898','戊戌变法（103天）→改良道路失败→揭示改良在中国走不通'],
+      ['1900','八国联军→《辛丑条约》→中国完全沦为半殖民地半封建社会'],
+      ['1911','辛亥革命→中华民国成立→两千年帝制终结，民主共和深入人心'],
+      ['1919','五四运动→无产阶级登上历史舞台→新民主主义革命开端'],
+      ['1921','中国共产党成立（上海）→中国革命面貌焕然一新'],
+      ['1935','遵义会议→毛泽东核心确立→党史上生死攸关的转折点'],
+      ['1937','全面抗战爆发（卢沟桥）→第二次国共合作→全民族抗战'],
+      ['1949','中华人民共和国成立（10月1日）→"中国人民站起来了"'],
+    ];
+    return `<div class="tl-wrap">${tls.map(([y,e])=>`<div class="tli"><div class="tly">${y}</div><div class="tle">${e}</div></div>`).join('')}</div>
+    <div class="tip">✅ 背记要求：每个年份不只记事件，还要说出"历史意义"——这才是高考真正考的！</div>`;
+  }
+  if (task.type === 'geo') {
+    const t = GE_TOPICS[i % GE_TOPICS.length];
+    return `<div class="tbl" style="border-color:var(--ge);white-space:pre-line"><div class="tbt">📌 ${t.name}模板</div>${t.content}</div>
+    <div class="tip">⚠️ ${t.warn}</div>
+    <div class="ask-row"><input class="ask-inp" id="ask-${task.id}" placeholder="地理题不知从哪几点答？直接问…"/><button class="ask-btn" style="background:var(--ge)" onclick="taskAsk('ge','ask-${task.id}','ans-${task.id}')">问AI→</button></div>
+    <div class="ask-ans" id="ans-${task.id}"></div>`;
+  }
+  return '';
+}
+
+// ---- RENDER DAY ----
+let curKey = todayKey();
+
+function renderDay(k) {
+  curKey = k;
+  const data = getDayData(k);
+  const tasks = data.tasks;
+  const done = data.done;
+  const tot = tasks.length;
+  const comp = done.length;
+  const pct = Math.round(comp / tot * 100);
+  const isTod = isToday(k);
+  const dt = keyToDate(k);
+
+  document.getElementById('tbTitle').textContent = isTod ? '今日任务' : `${dt.getMonth()+1}月${dt.getDate()}日的任务`;
+  const tag = document.getElementById('tbTag');
+  tag.textContent = isTod ? '今天' : '历史记录';
+  tag.className = 'tb-tag ' + (isTod ? 'tag-today' : 'tag-hist');
+  document.getElementById('tbDate').textContent = `${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日 · ${DAYS_CN[dt.getDay()]}`;
+  document.getElementById('progTxt').textContent = `${comp}/${tot}`;
+  document.getElementById('progFill').style.width = pct + '%';
+
+  let html = `<div class="day-hdr">
+    <div class="dh-left">
+      <div class="dh-title">${dt.getMonth()+1}月${dt.getDate()}日 · ${DAYS_CN[dt.getDay()]}</div>
+      <div class="dh-sub">${isTod ? '📌 今天的任务清单' : '📁 历史任务记录'}</div>
+    </div>
+    <div class="dh-stat">
+      <div class="dh-num">${comp}<span style="font-size:14px;color:var(--muted)">/${tot}</span></div>
+      <div class="dh-nlabel">任务完成</div>
+      <div class="dh-track"><div class="dh-fill" style="width:${pct}%"></div></div>
+    </div>
+  </div>`;
+
+  if (!isTod) {
+    html += `<div class="hist-notice">📁 这是 ${dt.getMonth()+1}月${dt.getDate()}日 的历史任务，打勾记录依然有效。</div>`;
+  }
+
+  html += `<div class="sec-label">每日必做任务 · 点击展开学习内容</div>`;
+
+  tasks.forEach(task => {
+    const isDone = done.includes(task.id);
+    html += `<div class="tc${isDone?' done':''}" data-s="${task.s}" id="tc-${k}-${task.id}">
+      <div class="tc-head" onclick="toggleCard('${k}',${task.id})">
+        <div class="tc-chk" onclick="checkTask(event,'${k}',${task.id})">${isDone?'✓':''}</div>
+        <div class="tc-body-h">
+          <div class="tc-title">${task.title}</div>
+          <div class="tc-hint">${task.hint}</div>
+        </div>
+        <div class="tc-meta">
+          <span class="spill sp-${task.s}">${SUBJ_NAME[task.s]}</span>
+          <span class="arr">▶</span>
+        </div>
+      </div>
+      <div class="tc-content">
+        <div class="tc-inner">${renderContent(task)}</div>
+      </div>
+    </div>`;
+  });
+
+  html += `<div style="margin-top:24px"><div class="sec-label">本周周期任务</div>
+  <div class="wgrid">
+    <div class="wcard"><div class="wi">✍️</div><div class="wn" style="color:var(--en)">英语</div><div class="wd">限时作文训练</div><span class="wb">本周待做</span></div>
+    <div class="wcard"><div class="wi">📋</div><div class="wn" style="color:var(--po)">政治</div><div class="wd">限时小考</div><span class="wb">本周待做</span></div>
+    <div class="wcard"><div class="wi">📝</div><div class="wn" style="color:var(--hi)">历史</div><div class="wd">限时小论文</div><span class="wb">本周待做</span></div>
+    <div class="wcard"><div class="wi">🗺️</div><div class="wn" style="color:var(--ge)">地理</div><div class="wd">模板整合</div><span class="wb">本周待做</span></div>
+  </div></div>`;
+
+  if (isTod) {
+    const savedSync = loadStore()[k]?.sync || '';
+    html += `<div class="sync-card">
+      <h3>📝 今日学习同步</h3>
+      <p>说说今天完成了什么、哪里卡住了——AI帮你分析并调整明天计划。</p>
+      <textarea class="sync-ta" id="syncTA" placeholder="例如：语文古诗背了3首感觉还行，英语单词有点记不住……政治经济部分有点乱……">${savedSync}</textarea><br>
+      <button class="sync-btn" id="syncBtn" onclick="doSync()">同步并获取AI反馈 →</button>
+      <div class="sync-res" id="syncRes"><div class="sync-lbl">AI 学习顾问反馈</div><div id="syncTxt"></div></div>
+    </div>`;
+  }
+
+  document.getElementById('mainContent').innerHTML = html;
+  renderSidebar();
+}
+
+// ---- SIDEBAR ----
+function renderSidebar() {
+  const s = loadStore();
+  const today = todayKey();
+  getDayData(today); // ensure today exists
+
+  const keys = [];
+  for (let i = 0; i <= 60; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (s[k] || i === 0) keys.push(k);
+  }
+
+  const html = keys.map(k => {
+    const d = keyToDate(k);
+    const isTod = isToday(k);
+    const data = s[k];
+    const done = data?.done?.length || 0;
+    const tot = data?.tasks?.length || 10;
+    const pct = done / tot;
+    const dotCls = isTod ? 'hdot-today' : pct === 1 ? 'hdot-full' : pct > 0 ? 'hdot-part' : 'hdot-none';
+    return `<div class="hist-item${k===curKey?' cur':''}" onclick="renderDay('${k}')">
+      <div class="hdot ${dotCls}"></div>
+      <div>
+        <div class="hist-date">${d.getMonth()+1}/${d.getDate()}${isTod?' · 今天':''}</div>
+        <div class="hist-day">${DAYS_CN[d.getDay()]}</div>
+      </div>
+      <div class="hist-prog">${done}/${tot}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('histList').innerHTML = html;
+
+  // streak
+  const streak = keys.filter(k => {
+    const d = s[k]; return d && d.done && d.done.length > 0;
+  }).length;
+  document.getElementById('streakN').textContent = streak || 1;
+}
+
+// ---- INTERACTIONS ----
+function goToday() { renderDay(todayKey()); }
+
+function toggleCard(k, id) {
+  const el = document.getElementById(`tc-${k}-${id}`);
+  if (el) el.classList.toggle('open');
+}
+
+function checkTask(e, k, id) {
+  e.stopPropagation();
+  const s = loadStore();
+  const data = s[k];
+  if (!data) return;
+  const isDone = data.done.includes(id);
+  setDone(k, id, !isDone);
+  // update just this card visually without full re-render
+  const card = document.getElementById(`tc-${k}-${id}`);
+  if (card) {
+    if (!isDone) card.classList.add('done'); else card.classList.remove('done');
+    const chk = card.querySelector('.tc-chk');
+    if (chk) chk.textContent = !isDone ? '✓' : '';
+  }
+  // update progress
+  const newData = loadStore()[k];
+  const comp = newData.done.length, tot = newData.tasks.length;
+  document.getElementById('progTxt').textContent = `${comp}/${tot}`;
+  document.getElementById('progFill').style.width = Math.round(comp/tot*100) + '%';
+  const dhNum = document.querySelector('.dh-num');
+  if (dhNum) dhNum.innerHTML = `${comp}<span style="font-size:14px;color:var(--muted)">/${tot}</span>`;
+  const dhFill = document.querySelector('.dh-fill');
+  if (dhFill) dhFill.style.width = Math.round(comp/tot*100) + '%';
+  renderSidebar();
+}
+
+function toggleAcc(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+// ---- COUNTDOWN ----
+function updateCountdown() {
+  const now = new Date();
+  const next = new Date();
+  next.setHours(UPDATE_HOUR, 0, 0, 0);
+  if (now >= next) next.setDate(next.getDate() + 1);
+  const diff = next - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const sv = Math.floor((diff % 60000) / 1000);
+  document.getElementById('ctime').textContent =
+    `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sv).padStart(2,'0')}`;
+}
+
+// ---- AI ----
+const AI_SYS = {
+  cn:'你是专业高中语文老师，擅长古诗文解析、作文指导、阅读答题。给出清晰有条理的解答，含答题套路和模板。',
+  en:'你是专业高中英语老师。作文批改：①内容②语言③结构分项评价，给修改建议和示范句子。语法题直接解析。续写指导给具体动作描写词汇。',
+  ma:'你是专业高中数学老师，逐步解题，每步标注依据，给规范答题格式，强调高考失分点。',
+  po:'你是专业高中政治老师，按"原理+材料+结论"框架作答，给规范主观题答案，标注得分关键词。',
+  hi:'你是专业高中历史老师，从史实、逻辑、史观分析。小论文按论点→史实×3（含分析句）→结论结构给出。',
+  ge:'你是专业高中地理老师，按区位因素框架分条作答，每条给关键词+解释，标注答题注意事项。',
+};
+
+async function callAI(sys, q) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content:q}]})
+  });
+  const d = await r.json();
+  return d.content?.map(b=>b.text||'').join('') || '请求失败，请稍后重试。';
+}
+
+function showLoading(boxId) {
+  const box = document.getElementById(boxId);
+  if (box) { box.classList.add('on'); box.innerHTML = '<div class="dots"><span></span><span></span><span></span></div> 正在思考…'; }
+  return box;
+}
+
+async function taskAsk(s, inputId, ansId) {
+  const inp = document.getElementById(inputId);
+  const box = showLoading(ansId);
+  if (!inp || !box) return;
+  const q = inp.value.trim(); if (!q) { box.classList.remove('on'); return; }
+  try { box.textContent = await callAI(AI_SYS[s], q); }
+  catch { box.textContent = '网络失败，请重试。'; }
+}
+
+async function doSync() {
+  const ta = document.getElementById('syncTA');
+  const btn = document.getElementById('syncBtn');
+  const res = document.getElementById('syncRes');
+  const txt = document.getElementById('syncTxt');
+  if (!ta || !btn) return;
+  const q = ta.value.trim(); if (!q) return;
+  btn.disabled = true; btn.textContent = '分析中…';
+  res.classList.add('on');
+  txt.innerHTML = '<div class="dots"><span></span><span></span><span></span></div> AI分析中…';
+  const sys = `你是高考备考学习顾问，管理高三学生六科一轮复习：语文（古诗/名句/答题）英语（词汇/句子/语法）数学（章节复习）政治（必修背记）历史（小论文/专题）地理（模板背记）。根据学生今日情况给：①整体简评（鼓励为主，2-3句）②各科薄弱点建议（具体可操作，每科最多2条）③明天重点调整建议（1-2条）。语气像学长，简洁口语化，不要太正式。`;
+  try {
+    const ans = await callAI(sys, '今日学习情况：' + q);
+    txt.textContent = ans;
+    setSync(todayKey(), q);
+  } catch { txt.textContent = '网络失败，请重试。'; }
+  btn.disabled = false; btn.textContent = '同步并获取AI反馈 →';
+}
+
+// ---- AUTO REFRESH ----
+function checkRefresh() {
+  const now = new Date();
+  if (now.getHours() === UPDATE_HOUR && now.getMinutes() === 0 && now.getSeconds() < 10) {
+    getDayData(todayKey());
+    if (isToday(curKey)) renderDay(todayKey());
+    renderSidebar();
+  }
+}
+
+// ---- INIT ----
+getDayData(todayKey());
+renderDay(todayKey());
+updateCountdown();
+setInterval(updateCountdown, 1000);
+setInterval(checkRefresh, 5000);
+</script>
+</body>
+</html>
